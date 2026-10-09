@@ -36,21 +36,65 @@ public class RewardsService : IRewardsService
     {
         count++;
         List<VisitedLocation> userLocations = user.VisitedLocations;
-        List<Attraction> attractions = _gpsUtil.GetAttractions();
+        List<Attraction> attractions = _gpsUtil.GetAttractions().ToList();
 
-        foreach (var visitedLocation in userLocations)
+
+        Dictionary<string, VisitedLocation> selectedVisitedLocationsAndAttractions = new Dictionary<string, VisitedLocation>();
+        List<Attraction> selectedAttractions = new List<Attraction>();
+        List<UserReward> UserRewardsToBeCreated = new List<UserReward>();
+        Attraction attraction;
+        //foreach (var visitedLocation in userLocations)
+        //{
+        //    foreach (var attraction in attractions)
+        //    {
+        //        if (!user.UserRewards.Any(r => r.Attraction.AttractionName == attraction.AttractionName))
+        //        {
+        //            if (NearAttraction(visitedLocation, attraction))
+        //            {
+        //                user.AddUserReward(new UserReward(visitedLocation, attraction, GetRewardPoints(attraction, user)));
+        //            }
+        //        }
+        //    }
+        //}
+
+        //for (int i = attractions.Count - 1; i >= 0; i--)
+        //{
+        //    if (!user.UserRewards.Any(r => r.Attraction.AttractionName == attractions[i].AttractionName))
+        //    {
+        //        for (int i2 = userLocations.Count - 1; i2 >= 0; i2--)
+        //        {
+        //            if (NearAttraction(userLocations[i2], attractions[i]))
+        //            {
+        //                user.AddUserReward(new UserReward(userLocations[i2], attractions[i], GetRewardPoints(attractions[i], user)));
+        //            }
+        //        }
+        //    }
+        //}
+
+        for (int i1 = attractions.Count - 1 ; i1 >= 0; i1--)
         {
-            foreach (var attraction in attractions)
+            for (int i2 = userLocations.Count - 1; i2 >= 0; i2--)
             {
-                if (!user.UserRewards.Any(r => r.Attraction.AttractionName == attraction.AttractionName))
+                if (NearAttraction(userLocations[i2], attractions[i1]) && !selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1].AttractionName))
                 {
-                    if (NearAttraction(visitedLocation, attraction))
-                    {
-                        user.AddUserReward(new UserReward(visitedLocation, attraction, GetRewardPoints(attraction, user)));
-                    }
+                    selectedVisitedLocationsAndAttractions.Add
+                    (
+                        attractions[i1].AttractionName, userLocations[i2]
+                    );  
                 }
             }
         }
+
+        for (int i3 = selectedVisitedLocationsAndAttractions.Count - 1; i3 >= 0; i3--)
+        {
+            if (!user.UserRewards.Any(r => r.Attraction.AttractionName == selectedVisitedLocationsAndAttractions.ElementAt(i3).Key))
+            {
+                attraction = attractions.Where(a => a.AttractionName == selectedVisitedLocationsAndAttractions.ElementAt(i3).Key).First();
+                user.AddUserReward(new UserReward(selectedVisitedLocationsAndAttractions.ElementAt(i3).Value, attraction, GetRewardPoints(attraction, user)));
+            }
+        }
+
+
     }
 
     public bool IsWithinAttractionProximity(Attraction attraction, Locations location)

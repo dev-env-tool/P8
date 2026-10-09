@@ -86,6 +86,7 @@ namespace TourGuideTest
         }
 
         [Fact(Skip = "Not yet implemented")]
+        //[Fact]
         public void GetNearbyAttractions()
         {
             _fixture.Initialize(0);
