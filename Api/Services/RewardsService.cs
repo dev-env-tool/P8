@@ -3,6 +3,7 @@ using TourGuide.LibrairiesWrappers.Interfaces;
 using TourGuide.Services.Interfaces;
 using TourGuide.Users;
 
+
 namespace TourGuide.Services;
 
 public class RewardsService : IRewardsService
@@ -37,39 +38,9 @@ public class RewardsService : IRewardsService
         count++;
         List<VisitedLocation> userLocations = user.VisitedLocations;
         List<Attraction> attractions = _gpsUtil.GetAttractions().ToList();
-
-
-        Dictionary<string, VisitedLocation> selectedVisitedLocationsAndAttractions = new Dictionary<string, VisitedLocation>();
-        List<Attraction> selectedAttractions = new List<Attraction>();
-        List<UserReward> UserRewardsToBeCreated = new List<UserReward>();
+        Dictionary<string, VisitedLocation> selectedVisitedLocationsAndAttractions = new ();
         Attraction attraction;
-        //foreach (var visitedLocation in userLocations)
-        //{
-        //    foreach (var attraction in attractions)
-        //    {
-        //        if (!user.UserRewards.Any(r => r.Attraction.AttractionName == attraction.AttractionName))
-        //        {
-        //            if (NearAttraction(visitedLocation, attraction))
-        //            {
-        //                user.AddUserReward(new UserReward(visitedLocation, attraction, GetRewardPoints(attraction, user)));
-        //            }
-        //        }
-        //    }
-        //}
 
-        //for (int i = attractions.Count - 1; i >= 0; i--)
-        //{
-        //    if (!user.UserRewards.Any(r => r.Attraction.AttractionName == attractions[i].AttractionName))
-        //    {
-        //        for (int i2 = userLocations.Count - 1; i2 >= 0; i2--)
-        //        {
-        //            if (NearAttraction(userLocations[i2], attractions[i]))
-        //            {
-        //                user.AddUserReward(new UserReward(userLocations[i2], attractions[i], GetRewardPoints(attractions[i], user)));
-        //            }
-        //        }
-        //    }
-        //}
 
         for (int i1 = attractions.Count - 1 ; i1 >= 0; i1--)
         {
@@ -93,14 +64,27 @@ public class RewardsService : IRewardsService
                 user.AddUserReward(new UserReward(selectedVisitedLocationsAndAttractions.ElementAt(i3).Value, attraction, GetRewardPoints(attraction, user)));
             }
         }
-
-
     }
 
     public bool IsWithinAttractionProximity(Attraction attraction, Locations location)
     {
         Console.WriteLine(GetDistance(attraction, location));
         return GetDistance(attraction, location) <= _attractionProximityRange;
+    }
+
+    public Dictionary<Attraction, double> GetAttractionsByDistanceAscending(Locations location)
+    {
+        List<Attraction> allAttractions = _gpsUtil.GetAttractions();
+        int allAttractionsCountMinus1 = allAttractions.Count - 1;
+        Dictionary<Attraction, double> AttractionDistanceDictionary = new ();
+
+        for (int i = 0; i <= allAttractionsCountMinus1; i++)
+        {
+            AttractionDistanceDictionary.Add(allAttractions[i], GetDistance(allAttractions[i], location));
+        }
+
+        AttractionDistanceDictionary.OrderBy(x => x.Value);
+        return AttractionDistanceDictionary;
     }
 
     private bool NearAttraction(VisitedLocation visitedLocation, Attraction attraction)

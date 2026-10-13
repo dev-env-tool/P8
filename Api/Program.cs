@@ -13,6 +13,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IRewardsService, RewardsService>();
+builder.Services.AddScoped<IOffersService, OffersService>();
 builder.Services.AddScoped<ITourGuideService, TourGuideService>();
 builder.Services.AddScoped<IGpsUtil, GpsUtilWrapper>();
 builder.Services.AddScoped<IRewardCentral, RewardCentralWrapper>();

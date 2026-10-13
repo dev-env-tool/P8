@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
 using TourGuide.LibrairiesWrappers.Interfaces;
+using TourGuide.Offers;
 using TourGuide.Services.Interfaces;
 using TourGuide.Users;
 using TourGuide.Utilities;
@@ -15,6 +16,7 @@ public class TourGuideService : ITourGuideService
     private readonly ILogger _logger;
     private readonly IGpsUtil _gpsUtil;
     private readonly IRewardsService _rewardsService;
+    private readonly IOffersService _offerService;
     private readonly TripPricer.TripPricer _tripPricer;
     private readonly TripPricer.TripPricerTask _tripPricerTask;
     public Tracker Tracker { get; private set; }
@@ -22,13 +24,14 @@ public class TourGuideService : ITourGuideService
     private const string TripPricerApiKey = "test-server-api-key";
     private bool _testMode = true;
 
-    public TourGuideService(ILogger<TourGuideService> logger, IGpsUtil gpsUtil, IRewardsService rewardsService, ILoggerFactory loggerFactory)
+    public TourGuideService(ILogger<TourGuideService> logger, IGpsUtil gpsUtil, IRewardsService rewardsService, IOffersService offerService, ILoggerFactory loggerFactory)
     {
         _logger = logger;
         _tripPricer = new();
         _tripPricerTask = new("", new Guid(), 0, 0, 0, 0);
         _gpsUtil = gpsUtil;
         _rewardsService = rewardsService;
+        _offerService = offerService;
 
         CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
@@ -106,6 +109,35 @@ public class TourGuideService : ITourGuideService
 
         return nearbyAttractions;
     }
+
+    public List<Offer> Get5NearestOffers(User user, VisitedLocation visitedLocation)
+    {
+        Dictionary<Attraction, double> NearestAttractionsAndDistance = Get5NearestAttractions(user, visitedLocation);
+        List<UserReward> rewards = new List<UserReward>();
+        UserReward bufferUserReward;
+        foreach (var attractionDistance in NearestAttractionsAndDistance)
+        {
+            bufferUserReward = rewards.Where(r => r.Attraction.AttractionName == attractionDistance.Key.AttractionName).First();
+            _offerService.GenerateOffer(user, attractionDistance.Value, attractionDistance.Key, bufferUserReward, bufferUserReward.VisitedLocation.Location,visitedLocation);
+        }
+        return _offerService.Get5NearestOffers(user);
+    }
+
+    private Dictionary<Attraction, double> Get5NearestAttractions(User user, VisitedLocation visitedLocation)
+    {
+        Dictionary<Attraction, double> AttractionDistanceDictionary = _rewardsService.GetAttractionsByDistanceAscending(visitedLocation.Location);
+        Dictionary<Attraction, double> listOf5NearestAttractions = new();
+
+        for (int i = 0; i <= 4; i++)
+        {
+            listOf5NearestAttractions.Add(
+                AttractionDistanceDictionary.ElementAt(i).Key,
+                AttractionDistanceDictionary.ElementAt(i).Value);
+        }
+
+        return listOf5NearestAttractions;
+    }
+
 
     private void AddShutDownHook()
     {
