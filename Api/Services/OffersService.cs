@@ -39,15 +39,33 @@ public class OffersService : IOffersService
     }
 
 
-    public List<Offer> Get5NearestOffers(User user)
+    public List<OfferDTO> Get5NearestOffersDTO(User user)
     {
-        List<Offer> offerList = new();
+        List<OfferDTO> offerList = new();
         foreach(var offer in user.TempListOf5Offers)
         {
-            offerList.Add(offer);
+            offerList.Add(MapOfferToOfferDTO(offer));
         }
         user.ClearTempListOf5Offers();
         return offerList;
     }
+
+    private OfferDTO MapOfferToOfferDTO(Offer offer)
+    {
+        OfferDTO  offerDTO = new OfferDTO (
+        offer.UserReward.Attraction.AttractionName,
+        offer.UserReward.Attraction.Latitude,
+        offer.UserReward.Attraction.Longitude,
+        offer.VisitedLocation.Location.Latitude,
+        offer.VisitedLocation.Location.Longitude,
+        offer.Distance,
+        offer.UserReward.RewardPoints,
+        offer.OfferId
+        );
+        
+
+        return offerDTO;
+    }
+    
 
 }

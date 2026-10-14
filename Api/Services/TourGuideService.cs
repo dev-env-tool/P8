@@ -119,13 +119,10 @@ public class TourGuideService : ITourGuideService
         //        nearbyAttractions.Add(attraction);
         //    }
         //}
-
-
-
         return nearbyAttractions;
     }
 
-    public List<Offer> Get5NearestOffers(User user, VisitedLocation visitedLocation)
+    public List<OfferDTO> Get5NearestOffersDTO(User user, VisitedLocation visitedLocation)
     {
         Dictionary<Attraction, double> NearestAttractionsAndDistance = Get5NearestAttractions(visitedLocation);
         List<UserReward> rewards = new List<UserReward>();
@@ -137,7 +134,7 @@ public class TourGuideService : ITourGuideService
             bufferUserReward = rewards.Where(r => r.Attraction.AttractionName == attractionDistance.Key.AttractionName).First();
             _offerService.GenerateOffer(user, attractionDistance.Value, attractionDistance.Key, bufferUserReward, bufferUserReward.VisitedLocation.Location,visitedLocation);
         }
-        return _offerService.Get5NearestOffers(user);
+        return _offerService.Get5NearestOffersDTO(user);
     }
 
     private Dictionary<Attraction, double> Get5NearestAttractions(VisitedLocation visitedLocation)

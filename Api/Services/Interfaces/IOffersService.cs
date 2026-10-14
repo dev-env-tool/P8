@@ -10,6 +10,6 @@ namespace TourGuide.Services.Interfaces
     {
         Offer GenerateOffer(User user, double distance, Attraction attraction,
             UserReward userReward, Locations locations, VisitedLocation visitedLocation);
-        public List<Offer> Get5NearestOffers(User user);
+        public List<OfferDTO> Get5NearestOffersDTO(User user);
     }
 }
