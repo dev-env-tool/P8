@@ -8,15 +8,13 @@ namespace TourGuide.Offers
         public double Distance { get; }
         public Guid OfferId { get; }
         public UserReward UserReward { get; set; }
-        public Attraction Attraction { get; }
         public VisitedLocation VisitedLocation { get; }
 
-        public Offer(double distance, Guid offerId, UserReward userReward, Attraction attraction, VisitedLocation visitedLocation)
+        public Offer(double distance, Guid offerId, UserReward userReward, VisitedLocation visitedLocation)
         {
             Distance = distance;
             OfferId = Guid.NewGuid();
             UserReward = userReward;
-            Attraction = attraction;
             VisitedLocation = visitedLocation;
         }
 

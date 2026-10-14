@@ -28,6 +28,7 @@ public class RewardServiceTest : IClassFixture<DependencyFixture>
         _fixture.TourGuideService.TrackUserLocation(user);
         var userRewards = user.UserRewards;
         _fixture.TourGuideService.Tracker.StopTracking();
+        int test = userRewards.Count;
         Assert.True(userRewards.Count == 1);
     }
 

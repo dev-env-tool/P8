@@ -86,7 +86,6 @@ namespace TourGuideTest
         }
 
         [Fact]
-        //[Fact]
         public void GetNearbyAttractions()
         {
             _fixture.Initialize(0);

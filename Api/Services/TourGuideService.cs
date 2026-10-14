@@ -1,7 +1,11 @@
 ﻿using GpsUtil.Location;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using TourGuide.LibrairiesWrappers.Interfaces;
 using TourGuide.Offers;
 using TourGuide.Services.Interfaces;
@@ -54,9 +58,11 @@ public class TourGuideService : ITourGuideService
         return user.UserRewards;
     }
 
-    public VisitedLocation GetUserLocation(User user)
+    public VisitedLocation GetUserLocation(User user, [Optional] bool? isNearAttraction)
     {
-        return user.VisitedLocations.Any() ? user.GetLastVisitedLocation() : TrackUserLocation(user);
+        if (isNearAttraction == null) { isNearAttraction = true; }
+        VisitedLocation visitedLocation = user.VisitedLocations.Any() ? user.GetLastVisitedLocation() : TrackUserLocation(user, isNearAttraction);
+        return visitedLocation;
     }
 
     public User GetUser(string userName)
@@ -88,33 +94,44 @@ public class TourGuideService : ITourGuideService
         return providers.Result.ToList();
     }
 
-    public VisitedLocation TrackUserLocation(User user)
+    public VisitedLocation TrackUserLocation(User user, [Optional] bool? isNearAttraction)
     {
+        if (isNearAttraction == null) { isNearAttraction = true; }
         VisitedLocation visitedLocation = _gpsUtil.GetUserLocation(user.UserId);
         user.AddToVisitedLocations(visitedLocation);
-        _rewardsService.CalculateRewards(user);
+        _rewardsService.CalculateRewards(user, isNearAttraction);
         return visitedLocation;
     }
+
 
     public List<Attraction> GetNearByAttractions(VisitedLocation visitedLocation)
     {
         List<Attraction> nearbyAttractions = new ();
-        foreach (var attraction in _gpsUtil.GetAttractions())
+        Dictionary<Attraction, double> NearestAttractionsAndDistance = Get5NearestAttractions(visitedLocation);
+        foreach (var attractionDistance in NearestAttractionsAndDistance)
         {
-            if (_rewardsService.IsWithinAttractionProximity(attraction, visitedLocation.Location))
-            {
-                nearbyAttractions.Add(attraction);
-            }
+              nearbyAttractions.Add(attractionDistance.Key);
         }
+        //foreach (var attraction in _gpsUtil.GetAttractions())
+        //{
+        //    if (_rewardsService.IsWithinAttractionProximity(attraction, visitedLocation.Location))
+        //    {
+        //        nearbyAttractions.Add(attraction);
+        //    }
+        //}
+
+
 
         return nearbyAttractions;
     }
 
     public List<Offer> Get5NearestOffers(User user, VisitedLocation visitedLocation)
     {
-        Dictionary<Attraction, double> NearestAttractionsAndDistance = Get5NearestAttractions(user, visitedLocation);
+        Dictionary<Attraction, double> NearestAttractionsAndDistance = Get5NearestAttractions(visitedLocation);
         List<UserReward> rewards = new List<UserReward>();
         UserReward bufferUserReward;
+        _rewardsService.CalculateRewards(user, false);
+        rewards = user.UserRewards;
         foreach (var attractionDistance in NearestAttractionsAndDistance)
         {
             bufferUserReward = rewards.Where(r => r.Attraction.AttractionName == attractionDistance.Key.AttractionName).First();
@@ -123,7 +140,7 @@ public class TourGuideService : ITourGuideService
         return _offerService.Get5NearestOffers(user);
     }
 
-    private Dictionary<Attraction, double> Get5NearestAttractions(User user, VisitedLocation visitedLocation)
+    private Dictionary<Attraction, double> Get5NearestAttractions(VisitedLocation visitedLocation)
     {
         Dictionary<Attraction, double> AttractionDistanceDictionary = _rewardsService.GetAttractionsByDistanceAscending(visitedLocation.Location);
         Dictionary<Attraction, double> listOf5NearestAttractions = new();

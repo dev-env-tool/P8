@@ -1,7 +1,9 @@
 ﻿using GpsUtil.Location;
+using System.Runtime.InteropServices;
 using TourGuide.LibrairiesWrappers.Interfaces;
 using TourGuide.Services.Interfaces;
 using TourGuide.Users;
+using System.Linq;
 
 
 namespace TourGuide.Services;
@@ -33,25 +35,45 @@ public class RewardsService : IRewardsService
         _proximityBuffer = _defaultProximityBuffer;
     }
 
-    public void CalculateRewards(User user)
+    public void CalculateRewards(User user, [Optional] bool? isNearAttraction)
     {
         count++;
         List<VisitedLocation> userLocations = user.VisitedLocations;
         List<Attraction> attractions = _gpsUtil.GetAttractions().ToList();
         Dictionary<string, VisitedLocation> selectedVisitedLocationsAndAttractions = new ();
         Attraction attraction;
+        bool isNearAttraction2 = false;
+        if (isNearAttraction == true) { isNearAttraction2 = true; }
 
-
-        for (int i1 = attractions.Count - 1 ; i1 >= 0; i1--)
-        {
-            for (int i2 = userLocations.Count - 1; i2 >= 0; i2--)
+        if(isNearAttraction2)
+        { 
+            for (int i1 = attractions.Count - 1 ; i1 >= 0; i1--)
             {
-                if (NearAttraction(userLocations[i2], attractions[i1]) && !selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1].AttractionName))
+                for (int i2 = userLocations.Count - 1; i2 >= 0; i2--)
                 {
-                    selectedVisitedLocationsAndAttractions.Add
-                    (
-                        attractions[i1].AttractionName, userLocations[i2]
-                    );  
+                    if (NearAttraction(userLocations[i2], attractions[i1]) && !selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1].AttractionName))
+                    {
+                        selectedVisitedLocationsAndAttractions.Add
+                        (
+                            attractions[i1].AttractionName, userLocations[i2]
+                        );  
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int i1 = attractions.Count - 1; i1 >= 0; i1--)
+            {
+                for (int i2 = userLocations.Count - 1; i2 >= 0; i2--)
+                {
+                    if (!selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1].AttractionName))
+                    {
+                        selectedVisitedLocationsAndAttractions.Add
+                        (
+                            attractions[i1].AttractionName, userLocations[i2]
+                        );
+                    }
                 }
             }
         }
@@ -77,14 +99,20 @@ public class RewardsService : IRewardsService
         List<Attraction> allAttractions = _gpsUtil.GetAttractions();
         int allAttractionsCountMinus1 = allAttractions.Count - 1;
         Dictionary<Attraction, double> AttractionDistanceDictionary = new ();
+        Dictionary<Attraction, double> orderedByAttractionDistanceDictionary = new ();
 
         for (int i = 0; i <= allAttractionsCountMinus1; i++)
         {
             AttractionDistanceDictionary.Add(allAttractions[i], GetDistance(allAttractions[i], location));
         }
 
-        AttractionDistanceDictionary.OrderBy(x => x.Value);
-        return AttractionDistanceDictionary;
+        foreach (KeyValuePair<Attraction, double> element in AttractionDistanceDictionary.OrderBy(key => key.Value))
+        {
+            orderedByAttractionDistanceDictionary.Add(element.Key, element.Value);
+            Console.WriteLine($"{element.Key}" + $"{element.Value}");
+        }
+
+        return orderedByAttractionDistanceDictionary;
     }
 
     private bool NearAttraction(VisitedLocation visitedLocation, Attraction attraction)

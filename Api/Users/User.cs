@@ -44,7 +44,7 @@ public class User
     }
     public void AddOfferToTempListOf5Offers(Offer offer)
     {
-        if (!TempListOf5Offers.Exists(r => r.Attraction.AttractionName == offer.Attraction.AttractionName))
+        if (!TempListOf5Offers.Exists(r => r.UserReward.Attraction.AttractionName == offer.UserReward.Attraction.AttractionName))
         {
             TempListOf5Offers.Add(offer);
         }

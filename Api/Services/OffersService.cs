@@ -32,7 +32,6 @@ public class OffersService : IOffersService
                 distance,
                 Guid.NewGuid(),
                 userReward,
-                attraction,
                 visitedLocation
             );
         user.AddOfferToTempListOf5Offers(offer);
