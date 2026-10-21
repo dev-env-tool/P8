@@ -99,7 +99,7 @@ public class TourGuideService : ITourGuideService
         if (isNearAttraction == null) { isNearAttraction = true; }
         VisitedLocation visitedLocation = _gpsUtil.GetUserLocation(user.UserId);
         user.AddToVisitedLocations(visitedLocation);
-        _rewardsService.CalculateRewards(user, isNearAttraction);
+        _rewardsService.CalculateRewards(user, null, isNearAttraction);
         return visitedLocation;
     }
 
@@ -127,7 +127,7 @@ public class TourGuideService : ITourGuideService
         Dictionary<Attraction, double> NearestAttractionsAndDistance = Get5NearestAttractions(visitedLocation);
         List<UserReward> rewards = new List<UserReward>();
         UserReward bufferUserReward;
-        _rewardsService.CalculateRewards(user, false);
+        _rewardsService.CalculateRewards(user,null, false);
         rewards = user.UserRewards;
         foreach (var attractionDistance in NearestAttractionsAndDistance)
         {

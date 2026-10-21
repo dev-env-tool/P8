@@ -36,7 +36,7 @@ namespace TourGuideTest
 
             RewardCentral = new RewardCentralWrapper();
             GpsUtil = new GpsUtilWrapper();
-            RewardsService = new RewardsService(GpsUtil, RewardCentral);
+            RewardsService = new RewardsService(GpsUtil, RewardCentral, tourGuideLogger);
             OffersService = new OffersService();
             TourGuideService = new TourGuideService(tourGuideLogger, GpsUtil, RewardsService, OffersService, loggerFactory);
         }
