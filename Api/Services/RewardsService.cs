@@ -21,14 +21,16 @@ public class RewardsService : IRewardsService
     private readonly IRewardCentral _rewardsCentral;
     private static int count = 0;
     private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
-    private readonly ILogger _logger;
 
-    public RewardsService(IGpsUtil gpsUtil, IRewardCentral rewardCentral, ILogger logger)
+    private int _now;
+    private int _maximum;
+    private readonly object _lockMaximum = new();
+
+    public RewardsService(IGpsUtil gpsUtil, IRewardCentral rewardCentral)
     {
         _gpsUtil = gpsUtil;
         _rewardsCentral =rewardCentral;
         _proximityBuffer = _defaultProximityBuffer;
-        _logger = logger;
     }
 
     public void SetProximityBuffer(int proximityBuffer)
@@ -41,37 +43,7 @@ public class RewardsService : IRewardsService
         _proximityBuffer = _defaultProximityBuffer;
     }
 
-    public async Task CalculateRewards2(User user,[Optional] CancellationToken? ct,[Optional] bool? isNearAttraction)
-    {
-        var tasks = new Task[10];
 
-        for (int i = 0; i < 10; i++)
-        {
-            int taskId = i;
-            //tasks[i] = Task.Run(async () => await ProcessCalculateRewards(taskId));
-        }
-
-        await Task.WhenAll(tasks);
-    }
-    private async Task ProcessCalculateRewards(User user, [Optional] bool? isNearAttraction)
-    {
-        await _semaphore.WaitAsync();
-        try
-        {
-            //var tasks = new Task[10];
-
-            //for (int i = 0; i < 1; i++)
-            //{
-            //    int taskId = i;
-                //tasks[i] = 
-               await Task.Run(async () => await CalculateRewards(user, null, isNearAttraction));
-            //}
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
-    }
 
     public async Task CalculateRewards(User user, [Optional] CancellationToken? ct, [Optional] bool? isNearAttraction)
     {
@@ -120,7 +92,7 @@ public class RewardsService : IRewardsService
 
         var options = new ParallelOptions
         {
-            MaxDegreeOfParallelism = 2,
+            MaxDegreeOfParallelism = 4,
         };
 
         var input = selectedVisitedLocationsAndAttractions
@@ -128,11 +100,9 @@ public class RewardsService : IRewardsService
             .ToArray();
 
         var rewardPoints = new int[input.Length];
-        int counter = 0;
         Parallel.For(0, input.Length, i =>
         {
             rewardPoints[i] = GetRewardPoints(input[i].Key, user);
-            counter ++;
         });
 
 

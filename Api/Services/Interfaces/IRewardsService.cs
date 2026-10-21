@@ -6,9 +6,7 @@ namespace TourGuide.Services.Interfaces
 {
     public interface IRewardsService
     {
-        Task CalculateRewards(User user,[Optional] CancellationToken? ct, [Optional] bool? isNearAttraction);
-        Task CalculateRewards2(User user,[Optional] CancellationToken? ct, [Optional] bool? isNearAttraction);
-        double GetDistance(Locations loc1, Locations loc2);
+        Task CalculateRewards(User user,[Optional] CancellationToken? ct, [Optional] bool? isNearAttraction);        double GetDistance(Locations loc1, Locations loc2);
         bool IsWithinAttractionProximity(Attraction attraction, Locations location);
         Dictionary<Attraction, double> GetAttractionsByDistanceAscending(Locations location);
         void SetDefaultProximityBuffer();

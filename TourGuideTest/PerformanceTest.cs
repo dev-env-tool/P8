@@ -69,56 +69,7 @@ namespace TourGuideTest
 
         [Fact]
         public async Task HighVolumeGetRewards()
-        {
-            //On peut ici augmenter le nombre d'utilisateurs pour tester les performances
-            //_fixture.Initialize(1);
-
-            //Stopwatch stopWatch = new Stopwatch();
-            //Attraction attraction = _fixture.GpsUtil.GetAttractions()[0];
-            //List<User> allUsers = _fixture.TourGuideService.GetAllUsers();
-
-            //allUsers.ForEach(u => u.AddToVisitedLocations(new VisitedLocation(u.UserId, attraction, DateTime.Now)));
-            ////----------------------------NEW----------------------------------------------------------------
-            ////----------------------------------------------------------------------------------------------------------
-            //using var ct = new CancellationTokenSource(TimeSpan.FromMinutes(25));
-
-            //var options = new ParallelOptions
-            //{
-            //    MaxDegreeOfParallelism = 1
-            //};
-
-            //stopWatch.Start();
-            //_output.WriteLine($"Utilisateurs : {allUsers.Count}");
-            //stopWatch.Restart(); // repart de zéro, contrairement à Start()
-            //await Parallel.ForEachAsync(allUsers, options, async (user, ct) =>
-            //{
-            //    await _fixture.RewardsService.CalculateRewards(user,ct);
-            //});
-            //stopWatch.Stop();
-            //_output.WriteLine($"highVolumeGetRewards: Time Elapsed: {stopWatch.Elapsed.TotalSeconds} seconds.");
-
-            //foreach (var user in allUsers)
-            //{
-            //    Assert.True(user.UserRewards.Count > 0);
-            //}
-
-            //----------------------------ORIGINAL BEGIN-------------------------------------------------------
-            //----------------------------------------------------------------------------------------------------------
-            //allUsers.ForEach(async u => await _fixture.RewardsService.CalculateRewards(u));
-
-            //foreach (var user in allUsers)
-            //{
-            //    Assert.True(user.UserRewards.Count > 0);
-            //}
-            //-----------------------------ORIGINAL END--------------------------------------------------------------
-            //----------------------------------------------------------------------------------------------------------
-            
-            //_fixture.TourGuideService.Tracker.StopTracking();
-
-            
-            //Assert.True(TimeSpan.FromMinutes(20).TotalSeconds >= stopWatch.Elapsed.TotalSeconds);
-
-            //--------------------------------------------------------------------------------------------------------------            
+        {          
             _fixture.Initialize(1000);
 
             Stopwatch stopWatch = new Stopwatch();
@@ -132,9 +83,8 @@ namespace TourGuideTest
 
             var options = new ParallelOptions
             {
-                MaxDegreeOfParallelism = 16,
+                MaxDegreeOfParallelism = 7,
             };
-
 
             var rewardsWatch = Stopwatch.StartNew();
             await Parallel.ForEachAsync(allUsers, options, async (user, ct) =>
@@ -150,10 +100,8 @@ namespace TourGuideTest
                 Assert.True(user.UserRewards.Count > 0);
             }
 
-
             stopWatch.Stop();
             _fixture.TourGuideService.Tracker.StopTracking();
-
             _output.WriteLine($"highVolumeGetRewards: Time Elapsed: {stopWatch.Elapsed.TotalSeconds} seconds.");
             Assert.True(TimeSpan.FromMinutes(20).TotalSeconds >= stopWatch.Elapsed.TotalSeconds);
 
