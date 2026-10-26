@@ -99,7 +99,7 @@ public class TourGuideService : ITourGuideService
         if (isNearAttraction == null) { isNearAttraction = true; }
         VisitedLocation visitedLocation = _gpsUtil.GetUserLocation(user.UserId);
         user.AddToVisitedLocations(visitedLocation);
-        _rewardsService.CalculateRewards(user, null, isNearAttraction);
+        _rewardsService.CalculateRewards(user, isNearAttraction);
         return visitedLocation;
     }
 
@@ -112,13 +112,6 @@ public class TourGuideService : ITourGuideService
         {
               nearbyAttractions.Add(attractionDistance.Key);
         }
-        //foreach (var attraction in _gpsUtil.GetAttractions())
-        //{
-        //    if (_rewardsService.IsWithinAttractionProximity(attraction, visitedLocation.Location))
-        //    {
-        //        nearbyAttractions.Add(attraction);
-        //    }
-        //}
         return nearbyAttractions;
     }
 
@@ -127,7 +120,7 @@ public class TourGuideService : ITourGuideService
         Dictionary<Attraction, double> NearestAttractionsAndDistance = Get5NearestAttractions(visitedLocation);
         List<UserReward> rewards = new List<UserReward>();
         UserReward bufferUserReward;
-        _rewardsService.CalculateRewards(user,null, false);
+        _rewardsService.CalculateRewards(user, false);
         rewards = user.UserRewards;
         foreach (var attractionDistance in NearestAttractionsAndDistance)
         {
@@ -137,7 +130,7 @@ public class TourGuideService : ITourGuideService
         return _offerService.Get5NearestOffersDTO(user);
     }
 
-    private Dictionary<Attraction, double> Get5NearestAttractions(VisitedLocation visitedLocation)
+    public Dictionary<Attraction, double> Get5NearestAttractions(VisitedLocation visitedLocation)
     {
         Dictionary<Attraction, double> AttractionDistanceDictionary = _rewardsService.GetAttractionsByDistanceAscending(visitedLocation.Location);
         Dictionary<Attraction, double> listOf5NearestAttractions = new();

@@ -25,6 +25,7 @@ public class User
         EmailAddress = emailAddress;
     }
 
+
     public void AddToVisitedLocations(VisitedLocation visitedLocation)
     {
         VisitedLocations.Add(visitedLocation);

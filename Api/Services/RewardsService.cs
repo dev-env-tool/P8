@@ -1,5 +1,8 @@
 ﻿using GpsUtil.Location;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
@@ -29,7 +32,7 @@ public class RewardsService : IRewardsService
     public RewardsService(IGpsUtil gpsUtil, IRewardCentral rewardCentral)
     {
         _gpsUtil = gpsUtil;
-        _rewardsCentral =rewardCentral;
+        _rewardsCentral = rewardCentral;
         _proximityBuffer = _defaultProximityBuffer;
     }
 
@@ -45,39 +48,112 @@ public class RewardsService : IRewardsService
 
 
 
-    public async Task CalculateRewards(User user, [Optional] CancellationToken? ct, [Optional] bool? isNearAttraction)
+    public async Task CalculateABatchOfRewards(List<User> users, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions)
+    {
+        int batchSize = 200;
+        ThreadPool.GetMinThreads(out _, out int minIoThreads);
+        ThreadPool.SetMinThreads(batchSize, 100);
+
+
+        Parallel.ForEach(users.Chunk(batchSize), new ParallelOptions { MaxDegreeOfParallelism = 6 }, batch =>
+        {
+            Parallel.ForEach(batch.AsEnumerable(), new ParallelOptions { MaxDegreeOfParallelism = 100 }, user =>
+            {
+                count++;
+                List<VisitedLocation> userLocations = new();
+                List<Attraction> attractions = new();
+                Dictionary<Attraction, VisitedLocation> selectedVisitedLocationsAndAttractions = new();
+                Attraction attraction;
+                userLocations = user.VisitedLocations;
+                attractions = _gpsUtil.GetAttractions().ToList();
+                bool isNearAttraction2 = false;
+                bool restrictTo5Attractions2 = false;
+                if (isNearAttraction == true) { isNearAttraction2 = true; }
+                if (restrictTo5Attractions == true) { restrictTo5Attractions2 = true; }
+                
+                if (restrictTo5Attractions2)
+                {
+                    attractions.Clear();
+                    Dictionary<Attraction, double> tempAttractionByDistance = GetAttractionsByDistanceAscending(userLocations.LastOrDefault().Location);
+                    for (int i = 0; i < 5; i++)
+                    {
+                        attractions.Add(tempAttractionByDistance.ElementAt(i).Key);
+                    }
+                }
+
+                if (isNearAttraction2)
+                {
+                    for (int i1 = 0 ; i1 < attractions.Count; i1++)
+                    {
+                        for (int i2 = 0; i2 < userLocations.Count; i2++)
+                        {
+                            if (NearAttraction(userLocations[i2], attractions[i1]) && !selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1]))
+                            {
+                                selectedVisitedLocationsAndAttractions.Add
+                                (
+                                    attractions[i1], userLocations[i2]
+                                );
+                            }
+                        }
+                    } 
+                }
+                else
+                {
+                    for (int i1 = 0; i1 < attractions.Count; i1++)
+                    {
+                        for (int i2 = 0; i2 < userLocations.Count; i2++)
+                        {
+                            if (!selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1]))
+                            {
+                                selectedVisitedLocationsAndAttractions.Add
+                                (
+                                    attractions[i1], userLocations[i2]
+                                );
+                            }
+                        }
+                    }
+                }
+
+                var input = selectedVisitedLocationsAndAttractions.ToArray();
+
+                var rewardPoints = new int[input.Length];
+
+                Parallel.For(0, input.Length, new ParallelOptions{ MaxDegreeOfParallelism = 5 }, i =>
+                {
+                    rewardPoints[i] = GetRewardPoints(input[i].Key, user);
+                });
+
+                for (int i3 = 0; i3 < input.Length; i3++)
+                {
+                    if (!user.UserRewards.Any(r => r.Attraction.AttractionName == input.ElementAt(i3).Key.AttractionName))
+                    {
+                        user.AddUserReward(new UserReward(selectedVisitedLocationsAndAttractions.ElementAt(i3).Value, input.ElementAt(i3).Key, rewardPoints[i3]));
+                    }
+                }
+
+            });
+        });
+
+        
+        return;
+    }
+    public async Task CalculateRewards(User user, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions)
     {
         count++;
         List<VisitedLocation> userLocations = user.VisitedLocations;
         List<Attraction> attractions = _gpsUtil.GetAttractions().ToList();
-        Dictionary<Attraction, VisitedLocation> selectedVisitedLocationsAndAttractions = new ();
+        Dictionary<Attraction, VisitedLocation> selectedVisitedLocationsAndAttractions = new();
         Attraction attraction;
         bool isNearAttraction2 = false;
         if (isNearAttraction == true) { isNearAttraction2 = true; }
 
-        if(isNearAttraction2)
-        { 
-            for (int i1 = attractions.Count - 1 ; i1 >= 0; i1--)
+        if (isNearAttraction2)
+        {
+            for (int i1 = 0; i1 < attractions.Count; i1++)
             {
-                for (int i2 = userLocations.Count - 1; i2 >= 0; i2--)
+                for (int i2 = 0; i2 < userLocations.Count; i2++)
                 {
                     if (NearAttraction(userLocations[i2], attractions[i1]) && !selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1]))
-                    {
-                        selectedVisitedLocationsAndAttractions.Add
-                        (
-                            attractions[i1], userLocations[i2]
-                        );  
-                    }
-                }
-            }
-        }
-        else
-        {
-            for (int i1 = attractions.Count - 1; i1 >= 0; i1--)
-            {
-                for (int i2 = userLocations.Count - 1; i2 >= 0; i2--)
-                {
-                    if (!selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1]))
                     {
                         selectedVisitedLocationsAndAttractions.Add
                         (
@@ -87,12 +163,28 @@ public class RewardsService : IRewardsService
                 }
             }
         }
+        else
+        {
+            for (int i1 = 0; i1 < attractions.Count; i1++)
+            {
+                for (int i2 = 0; i2 < userLocations.Count; i2++)
+
+                    if (!selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1]))
+                    {
+                        selectedVisitedLocationsAndAttractions.Add
+                        (
+                            attractions[i1], userLocations[i2]
+                        );
+                    }
+            }
+        }
+    
 
         using var internalct = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
         var options = new ParallelOptions
         {
-            MaxDegreeOfParallelism = 4,
+            MaxDegreeOfParallelism = 2,
         };
 
         var input = selectedVisitedLocationsAndAttractions
@@ -100,7 +192,7 @@ public class RewardsService : IRewardsService
             .ToArray();
 
         var rewardPoints = new int[input.Length];
-        Parallel.For(0, input.Length, i =>
+        Parallel.For(0, input.Length, async i =>
         {
             rewardPoints[i] = GetRewardPoints(input[i].Key, user);
         });
@@ -114,19 +206,8 @@ public class RewardsService : IRewardsService
             }
         }
 
-        //for (int i3 = selectedVisitedLocationsAndAttractions.Count - 1; i3 >= 0; i3--)
-        //{
-        //    if (!user.UserRewards.Any(r => r.Attraction.AttractionName == selectedVisitedLocationsAndAttractions.ElementAt(i3).Key.AttractionName))
-        //    {
-        //        attraction = attractions.Where(a => a.AttractionName == selectedVisitedLocationsAndAttractions.ElementAt(i3).Key.AttractionName).First();
-        //        user.AddUserReward(new UserReward(selectedVisitedLocationsAndAttractions.ElementAt(i3).Value, attraction, 
-        //            GetRewardPoints(selectedVisitedLocationsAndAttractions.ElementAt(i3).Key, user)));
-        //    }
-        //}
-
-
         return;
-        
+
     }
 
     public bool IsWithinAttractionProximity(Attraction attraction, Locations location)

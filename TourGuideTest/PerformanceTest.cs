@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using TourGuide.LibrairiesWrappers.Interfaces;
@@ -70,34 +71,20 @@ namespace TourGuideTest
         [Fact]
         public async Task HighVolumeGetRewards()
         {          
-            _fixture.Initialize(1000);
-
+            _fixture.Initialize(100000);
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
             Attraction attraction = _fixture.GpsUtil.GetAttractions()[0];
-            List<User> allUsers = _fixture.TourGuideService.GetAllUsers();
-            allUsers.ForEach(u => u.AddToVisitedLocations(new VisitedLocation(u.UserId, attraction, DateTime.Now)));
+            List<User> allUsersList = _fixture.TourGuideService.GetAllUsers().ToList();
 
-            using var ct = new CancellationTokenSource(TimeSpan.FromMinutes(25));
+            allUsersList.ForEach(u => u.AddToVisitedLocations(new VisitedLocation(u.UserId, attraction, DateTime.Now)));
 
-            var options = new ParallelOptions
+            var tasks = _fixture.RewardsService.CalculateABatchOfRewards(allUsersList,false,true);
+
+            foreach (var user in allUsersList)
             {
-                MaxDegreeOfParallelism = 7,
-            };
-
-            var rewardsWatch = Stopwatch.StartNew();
-            await Parallel.ForEachAsync(allUsers, options, async (user, ct) =>
-            {
-                await _fixture.RewardsService.CalculateRewards(user, ct);
-            });
-            rewardsWatch.Stop();
-            _output.WriteLine($"rewardsWatch: Time Elapsed: {rewardsWatch.Elapsed.TotalSeconds} seconds.");
-
-
-            foreach (var user in allUsers)
-            {
-                Assert.True(user.UserRewards.Count > 0);
+                Assert.True(user.UserRewards.Count() > 0);
             }
 
             stopWatch.Stop();
