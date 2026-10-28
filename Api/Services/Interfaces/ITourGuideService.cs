@@ -19,6 +19,7 @@ namespace TourGuide.Services.Interfaces
         User GetUser(string userName);
         VisitedLocation GetUserLocation(User user, [Optional] bool? isNearAttraction);
         List<UserReward> GetUserRewards(User user);
-        VisitedLocation TrackUserLocation(User user, [Optional] bool? isNearAttraction);
+        VisitedLocation TrackUserLocation(User user, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions);
+        List<VisitedLocation> TrackUserLocationInBatch(List<User> users, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions);
     }
 }

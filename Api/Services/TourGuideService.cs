@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using TourGuide.LibrairiesWrappers.Interfaces;
 using TourGuide.Offers;
 using TourGuide.Services.Interfaces;
@@ -94,13 +95,38 @@ public class TourGuideService : ITourGuideService
         return providers.Result.ToList();
     }
 
-    public VisitedLocation TrackUserLocation(User user, [Optional] bool? isNearAttraction)
+    public VisitedLocation TrackUserLocation(User user, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions)
     {
         if (isNearAttraction == null) { isNearAttraction = true; }
         VisitedLocation visitedLocation = _gpsUtil.GetUserLocation(user.UserId);
         user.AddToVisitedLocations(visitedLocation);
-        _rewardsService.CalculateRewards(user, isNearAttraction);
+        _rewardsService.CalculateRewards(user, isNearAttraction, restrictTo5Attractions);
         return visitedLocation;
+    }
+
+    public List<VisitedLocation> TrackUserLocationInBatch(List<User> users, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions)
+    {
+        int batchSize = 200;
+        ThreadPool.GetMinThreads(out _, out int minIoThreads);
+        ThreadPool.SetMinThreads(batchSize, 100);
+
+        List<VisitedLocation> allVisitedLocations = new();
+        Locations location = new(10,10);
+        VisitedLocation visitedLocation = new(Guid.NewGuid(),location, DateTime.Now);
+        if (isNearAttraction == null) { isNearAttraction = true; }
+
+        Parallel.ForEach(users.Chunk(batchSize), new ParallelOptions { MaxDegreeOfParallelism = 10 }, batch =>
+        {
+            Parallel.ForEach(batch.AsEnumerable(), new ParallelOptions { MaxDegreeOfParallelism = 100 }, user =>
+            {
+                VisitedLocation visitedLocation = _gpsUtil.GetUserLocation(user.UserId);
+                user.AddToVisitedLocations(visitedLocation);
+            });
+        });
+
+        _rewardsService.CalculateABatchOfRewards(users, isNearAttraction, restrictTo5Attractions);
+
+        return allVisitedLocations;
     }
 
 

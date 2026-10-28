@@ -23,7 +23,6 @@ public class RewardsService : IRewardsService
     private readonly IGpsUtil _gpsUtil;
     private readonly IRewardCentral _rewardsCentral;
     private static int count = 0;
-    private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     private int _now;
     private int _maximum;
@@ -50,14 +49,14 @@ public class RewardsService : IRewardsService
 
     public async Task CalculateABatchOfRewards(List<User> users, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions)
     {
-        int batchSize = 200;
+        int batchSize = 300;
         ThreadPool.GetMinThreads(out _, out int minIoThreads);
         ThreadPool.SetMinThreads(batchSize, 100);
 
 
         Parallel.ForEach(users.Chunk(batchSize), new ParallelOptions { MaxDegreeOfParallelism = 6 }, batch =>
         {
-            Parallel.ForEach(batch.AsEnumerable(), new ParallelOptions { MaxDegreeOfParallelism = 100 }, user =>
+            Parallel.ForEach(batch.AsEnumerable(), new ParallelOptions { MaxDegreeOfParallelism = 300 }, user =>
             {
                 count++;
                 List<VisitedLocation> userLocations = new();
@@ -140,12 +139,26 @@ public class RewardsService : IRewardsService
     public async Task CalculateRewards(User user, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions)
     {
         count++;
-        List<VisitedLocation> userLocations = user.VisitedLocations;
-        List<Attraction> attractions = _gpsUtil.GetAttractions().ToList();
+        List<VisitedLocation> userLocations = new();
+        List<Attraction> attractions = new();
         Dictionary<Attraction, VisitedLocation> selectedVisitedLocationsAndAttractions = new();
         Attraction attraction;
+        userLocations = user.VisitedLocations;
+        attractions = _gpsUtil.GetAttractions().ToList();
         bool isNearAttraction2 = false;
+        bool restrictTo5Attractions2 = false;
         if (isNearAttraction == true) { isNearAttraction2 = true; }
+        if (restrictTo5Attractions == true) { restrictTo5Attractions2 = true; }
+
+        if (restrictTo5Attractions2)
+        {
+            attractions.Clear();
+            Dictionary<Attraction, double> tempAttractionByDistance = GetAttractionsByDistanceAscending(userLocations.LastOrDefault().Location);
+            for (int i = 0; i < 5; i++)
+            {
+                attractions.Add(tempAttractionByDistance.ElementAt(i).Key);
+            }
+        }
 
         if (isNearAttraction2)
         {
@@ -168,7 +181,7 @@ public class RewardsService : IRewardsService
             for (int i1 = 0; i1 < attractions.Count; i1++)
             {
                 for (int i2 = 0; i2 < userLocations.Count; i2++)
-
+                {
                     if (!selectedVisitedLocationsAndAttractions.ContainsKey(attractions[i1]))
                     {
                         selectedVisitedLocationsAndAttractions.Add
@@ -176,29 +189,20 @@ public class RewardsService : IRewardsService
                             attractions[i1], userLocations[i2]
                         );
                     }
+                }
             }
         }
-    
 
-        using var internalct = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var options = new ParallelOptions
-        {
-            MaxDegreeOfParallelism = 2,
-        };
-
-        var input = selectedVisitedLocationsAndAttractions
-            .Reverse()
-            .ToArray();
+        var input = selectedVisitedLocationsAndAttractions.ToArray();
 
         var rewardPoints = new int[input.Length];
-        Parallel.For(0, input.Length, async i =>
+
+        Parallel.For(0, input.Length, new ParallelOptions { MaxDegreeOfParallelism = 5 }, i =>
         {
             rewardPoints[i] = GetRewardPoints(input[i].Key, user);
         });
 
-
-        for (int i3 = input.Length - 1; i3 >= 0; i3--)
+        for (int i3 = 0; i3 < input.Length; i3++)
         {
             if (!user.UserRewards.Any(r => r.Attraction.AttractionName == input.ElementAt(i3).Key.AttractionName))
             {
