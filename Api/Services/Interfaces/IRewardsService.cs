@@ -1,0 +1,17 @@
+﻿using GpsUtil.Location;
+using System.Runtime.InteropServices;
+using TourGuide.Users;
+
+namespace TourGuide.Services.Interfaces
+{
+    public interface IRewardsService
+    {
+        Task CalculateRewards(User user, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions);        
+        Task CalculateABatchOfRewards(List<User> users, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions);        
+        double GetDistance(Locations loc1, Locations loc2);
+        bool IsWithinAttractionProximity(Attraction attraction, Locations location);
+        Dictionary<Attraction, double> GetAttractionsByDistanceAscending(Locations location);
+        void SetDefaultProximityBuffer();
+        void SetProximityBuffer(int proximityBuffer);
+    }
+}
