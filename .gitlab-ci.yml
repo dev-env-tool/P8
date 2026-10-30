@@ -59,7 +59,7 @@
 
     variables:
       DOTNET_VERSION: "7.0"
-      SOLUTION_FILE: "~/source/~/TourGuide.sln"
+      SOLUTION_FILE: "~/TourGuide.sln"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
       GITLAB_ADVANCED_SAST_ENABLED: 'true'
