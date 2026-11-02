@@ -88,11 +88,17 @@ public class TourGuideService : ITourGuideService
     public List<Provider> GetTripDeals(User user)
     {
         int cumulativeRewardPoints = user.UserRewards.Sum(i => i.RewardPoints);
-        Task<List<Provider>> providers = Task.Run(() => _tripPricerTask.ExecuteAsync(TripPricerApiKey, user.UserId,
+        //Task<List<Provider>> providers = Task.Run(() => _tripPricerTask.ExecuteAsync(TripPricerApiKey, user.UserId,
+        //    user.UserPreferences.NumberOfAdults, user.UserPreferences.NumberOfChildren,
+        //    user.UserPreferences.TripDuration, cumulativeRewardPoints).GetAwaiter().GetResult());
+        List<Provider> providers = _tripPricer.GetPrice(TripPricerApiKey, user.UserId,
             user.UserPreferences.NumberOfAdults, user.UserPreferences.NumberOfChildren,
-            user.UserPreferences.TripDuration, cumulativeRewardPoints).GetAwaiter().GetResult());
-        user.TripDeals = providers.Result.ToList();
-        return providers.Result.ToList();
+            user.UserPreferences.TripDuration, cumulativeRewardPoints);
+
+        user.TripDeals = providers;
+        return providers;
+        //user.TripDeals = providers.Result.ToList();
+        //return providers.Result.ToList();
     }
 
     public VisitedLocation TrackUserLocation(User user, [Optional] bool? isNearAttraction, [Optional] bool? restrictTo5Attractions)
@@ -185,6 +191,7 @@ public class TourGuideService : ITourGuideService
 
     private void InitializeInternalUsers()
     {
+
         for (int i = 0; i < InternalTestHelper.GetInternalUserNumber(); i++)
         {
             var userName = $"internalUser{i}";
@@ -192,7 +199,7 @@ public class TourGuideService : ITourGuideService
             GenerateUserLocationHistory(user);
             _internalUserMap.Add(userName, user);
         }
-
+        
         _logger.LogDebug($"Created {InternalTestHelper.GetInternalUserNumber()} internal test users.");
     }
 
