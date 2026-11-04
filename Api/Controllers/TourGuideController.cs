@@ -41,8 +41,8 @@ public class TourGuideController : ControllerBase
         // Old function.
         //var attractions = _tourGuideService.GetNearByAttractions(visitedLocation);
         // New function.
-        var attractions = _tourGuideService.Get5NearestOffersDTO(GetUser(userName), visitedLocation);
-        return Ok(attractions);
+        var offers = _tourGuideService.Get5NearestOffersDTO(GetUser(userName), visitedLocation);
+        return Ok(offers);
     }
 
     [HttpGet("getRewards")]

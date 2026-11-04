@@ -13,11 +13,11 @@ namespace TourGuide.Services;
 
 public class OffersService : IOffersService
 {
-    private readonly ILogger _logger;
-    private readonly IGpsUtil _gpsUtil;
-    private readonly IRewardsService _rewardsService;
-    private readonly TripPricer.TripPricer _tripPricer;
-    private readonly TripPricer.TripPricerTask _tripPricerTask;
+    //private readonly ILogger _logger;
+    //private readonly IGpsUtil _gpsUtil;
+    //private readonly IRewardsService _rewardsService;
+    //private readonly TripPricer.TripPricer _tripPricer;
+    //private readonly TripPricer.TripPricerTask _tripPricerTask;
     public Tracker Tracker { get; private set; }
     private readonly Dictionary<string, User> _internalUserMap = new();
     private const string TripPricerApiKey = "test-server-api-key";
